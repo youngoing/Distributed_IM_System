@@ -1,0 +1,13 @@
+{
+  "msg_id": "8fb063f6a76f07a88e7cb06f0f08725b",
+  "msg_type": "private",
+  "status": "sent",
+  "sender_id": "user1",
+  "receiver_id": [
+    "user1"
+  ],
+  "msg_content_type": "text",
+  "timestamp": 1732780350200528672,
+  "group_id": "",
+  "msg_content": "wwww"
+}

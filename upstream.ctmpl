@@ -1,0 +1,5 @@
+upstream websocket_backend {
+    {{ range service "ws_server" }}
+    server {{ .Address }}:{{ .Port }};
+    {{ end }}
+}

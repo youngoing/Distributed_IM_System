@@ -1,1 +1,2 @@
 distributed_ws_server/install_pkg.sh
+*.env

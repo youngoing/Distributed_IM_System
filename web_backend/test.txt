@@ -1,0 +1,17 @@
+type UserDetail struct {
+	ID        int       //取消ID
+	UserID    int       //序列化改为user_detail_id
+	Nickname  string    
+	AvatarURL string    
+	CreatedAt time.Time 
+}
+
+// ChatGroup 定义聊天群组结构体
+type ChatGroup struct {
+	ID           int     //  group_id
+	UserDetailID int       //user_detail_id
+	Name         string    
+	AvatarURL    string    
+	Description  string    
+	CreatedAt    time.Time 
+}

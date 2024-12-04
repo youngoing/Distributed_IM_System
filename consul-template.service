@@ -1,0 +1,16 @@
+[Unit]
+Description=Consul Template for Nginx Configuration
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/consul-template \
+  -consul-addr=127.0.0.1:8500 \
+  #渲染 /etc/nginx/upstream.ctmpl 模板并生成 /etc/nginx/upstream.conf 配置文件
+  -template="/etc/nginx/upstream.ctmpl:/etc/nginx/upstream.conf:/bin/bash -c 'nginx -t && nginx -s reload'"
+Restart=always
+User=root
+Group=root
+Environment=CONSUL_ADDR=127.0.0.1:8500
+
+[Install]
+WantedBy=multi-user.target

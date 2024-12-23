@@ -22,6 +22,9 @@ func Run() {
 	if err := shared.ConfirmEnv(); err != nil {
 		log.Fatalf("Environment variable check failed: %v", err)
 	}
+
+	bind := os.Getenv("BIND_ADDRESS")
+
 	// 初始化数据库连接
 	shared.InitDB()
 	defer shared.CloseDB() // 确保在程序结束时关闭数据库连接
@@ -29,11 +32,15 @@ func Run() {
 	// 初始化 Redis 连接
 	shared.InitRedis()
 	defer shared.RedisClient.Close()
+	// 初始化 RabbitMQ 连接
+	shared.InitRabbitMQ()
+	defer shared.CloseRabbitMQ()
+
 	// 创建默认的 Gin 路由器
 	router := gin.Default()
 	// 配置 CORS 中间件
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://127.0.0.1:3000", "http://localhost:3000"},
+		AllowOrigins:     []string{"http://127.0.0.1:3000", "http://localhost:3000", "http://172.25.48.1:3000", "http://172.25.59.171:3000"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
@@ -77,7 +84,7 @@ func Run() {
 	user := router.Group("/user")
 
 	{
-		user.POST("/register", handler.RegisterUserHandler)
+		// user.POST("/register", handler.RegisterUserHandler)
 		user.POST("/login", handler.LoginHandler)
 		user.GET("/logout", AuthMiddleware(), handler.LogoutHandler)
 		user.POST("/:user_detail_id/update", AuthMiddleware(), handler.UpdateUserDetails)
@@ -122,5 +129,5 @@ func Run() {
 		os.Exit(0)
 	}()
 
-	router.Run(":8080")
+	router.Run(bind)
 }

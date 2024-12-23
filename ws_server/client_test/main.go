@@ -126,8 +126,7 @@ func sendMessages(conn *websocket.Conn, userId string) {
 func main() {
 	userID := readUserId()
 	logrus.Printf("用户ID: %s", userID)
-	url := fmt.Sprint("ws://127.0.0.1:8001/?token=", userID)
-
+	url := fmt.Sprint("ws://172.25.59.171:8000/?token=", userID)
 	// 尝试连接 WebSocket 并自动重试
 	var conn *websocket.Conn
 	var err error

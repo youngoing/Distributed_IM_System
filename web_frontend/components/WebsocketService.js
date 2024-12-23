@@ -1,5 +1,5 @@
 // components/WebSocketService.js
-
+import {websocketUrl} from '../api_list';
 class WebSocketService {
   constructor() {
       if (!WebSocketService.instance) {
@@ -19,7 +19,9 @@ class WebSocketService {
           return; // 如果 WebSocket 已连接，直接返回
       }
       // ws://127.0.0.1:3000/_next/webpack-hmr
-      const url = `ws://172.25.59.171:8000/ws?user_id=${user_detail_id}`;
+    //   const url = websocketUrl(user_detail_id);
+
+    const url = `ws://172.25.59.171:8000?token=${user_detail_id}`;
       console.log('Connecting to WebSocket:', url);
       this.ws = new WebSocket(url);
 
@@ -161,6 +163,11 @@ class WebSocketService {
             console.error('Failed to save message to localStorage:', error);
         }
     }
+    removeMessageHandler(handler) {
+        this.listeners = this.listeners.filter(listener => listener !== handler);
+        console.log('Message listener removed', handler);
+    }
+
 
 
 

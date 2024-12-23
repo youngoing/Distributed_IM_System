@@ -35,6 +35,8 @@ func (server *WebSocketServerStruct) handleMessages(ws *websocket.Conn) {
 			server.handleUserMessage(wsMessage)
 		case shared.MsgTypeGroup:
 			server.handleGroupMessage(wsMessage)
+		case shared.MsgTypeInvition:
+			server.handleInvitionMessage(wsMessage)
 		}
 	}
 }
@@ -76,13 +78,12 @@ func (server *WebSocketServerStruct) handleGroupMessage(wsMessage shared.WsMsg) 
 	var remainingReceivers []string
 	for _, receiverId := range wsMessage.ReceiverId {
 		server.userManager.mu.RLock()
-		value, exists := server.userManager.userList[receiverId]
+		_, exists := server.userManager.userList[receiverId]
 		server.userManager.mu.RUnlock()
 		if exists {
 			// 如果接收者在当前节点，直接发送消息
 			logrus.Infof("receiver %s is in current node,forwarding msg", receiverId)
-			logrus.Info("Value is ", value)
-			server.sendMessageToUser(value, wsMessage)
+			server.sendMessageToUser(receiverId, wsMessage)
 		} else {
 			// 如果接收者不在当前节点，记录下来
 			logrus.Infof("receiver %s is not in current node,forwarding msg to queue", receiverId)
@@ -97,6 +98,27 @@ func (server *WebSocketServerStruct) handleGroupMessage(wsMessage shared.WsMsg) 
 	if len(wsMessage.ReceiverId) > 0 {
 		// TODO: 转发到 RabbitMQ
 		logrus.Info("接收者不在当前节点，消息将被转发")
+		server.forwardMessageToMQ(wsMessage, "input.msg")
+	}
+}
+
+func (server *WebSocketServerStruct) handleInvitionMessage(wsMessage shared.WsMsg) {
+	logrus.Infof("received intition message: %+v", wsMessage)
+	var remainingReceivers []string
+	for _, receiverId := range wsMessage.ReceiverId {
+		server.userManager.mu.RLock()
+		_, exists := server.userManager.userList[receiverId]
+		server.userManager.mu.RUnlock()
+		if exists {
+			logrus.Infof("receiver %s is in current node,forwarding msg", receiverId)
+			server.sendMessageToUser(receiverId, wsMessage)
+		} else {
+			logrus.Infof("receiver %s is not in current node,forwarding msg to queue", receiverId)
+			remainingReceivers = append(remainingReceivers, receiverId)
+		}
+	}
+	if len(remainingReceivers) > 0 {
+		wsMessage.ReceiverId = remainingReceivers
 		server.forwardMessageToMQ(wsMessage, "input.msg")
 	}
 }

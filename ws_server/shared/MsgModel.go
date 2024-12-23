@@ -33,9 +33,9 @@ const (
 )
 
 type WsMsg struct {
-	MsgID   string `json:"msg_id"` // 消息唯一标识符
-	MsgType string `json:"msg_type"`
-	Status  string `json:"status"`
+	MsgID   string `json:"msg_id"`   // 消息唯一标识符
+	MsgType string `json:"msg_type"` // 消息类型(用户消息/群组消息/Ack 消息/系统消息/邀请消息)
+	Status  string `json:"status"`   // 消息状态 (sent/delivered/read)
 	WsHeader
 	WsBody
 }
@@ -43,12 +43,13 @@ type WsMsg struct {
 type WsHeader struct {
 	SenderId       string   `json:"sender_id"`
 	ReceiverId     []string `json:"receiver_id"`
-	MsgContentType string   `json:"msg_content_type"`
-	Timestamp      int64    `json:"timestamp"` // 时间戳
-	GroupId        string   `json:"group_id",omitempty`
+	MsgContentType string   `json:"msg_content_type"`   // 消息内容类型 (text/image)
+	Timestamp      int64    `json:"timestamp"`          // 时间戳
+	GroupId        string   `json:"group_id",omitempty` // 群组ID（可选）
 }
 type WsBody struct {
-	MsgContent string `json:"msg_content"`
+	MsgContent string                 `json:"msg_content"`
+	Extra      map[string]interface{} `json:"extra,omitempty"` // 扩展字段，用于自定义场景
 }
 
 // 生成随机 ID

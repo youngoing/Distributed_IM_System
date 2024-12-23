@@ -46,6 +46,8 @@ func (server *WebSocketServerStruct) handleWebSocket(w http.ResponseWriter, r *h
 		logrus.Error("Failed to upgrade to WebSocket:", err)
 		return
 	}
+
+	logrus.Infof("User %s connected", userId)
 	defer ws.Close()
 	// 为该用户创建并存储一个写入通道
 	messageChannel := make(chan []byte)

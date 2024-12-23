@@ -29,3 +29,6 @@ package handler
 // 	response.UserId = claims.UserId
 // 	c.JSON(http.StatusOK, response)
 // }
+
+//发送ws消息
+func sendWsMsg()

@@ -44,101 +44,188 @@ const ChatSidebar = ({ groups, friends, handleChatChange, user, onLogout, isSide
 
   return (
     <div className="relative flex">
-      <aside className={`transition-all duration-300 ${isSidebarOpen ? 'w-64' : 'w-0'} bg-gray-800 text-white flex flex-col min-h-screen overflow-hidden`}>
-        <header className="p-4 bg-gray-900 flex justify-between items-center">
-          <div className="flex items-center">
-            <div className="relative">
+      <aside className={`transition-all duration-300 ${isSidebarOpen ? 'w-72' : 'w-0'} bg-gray-800 text-white flex flex-col h-screen overflow-hidden`}>
+        {/* 个人信息区域 - 优化 */}
+        <header className="p-4 bg-gray-900 border-b border-gray-700">
+          <div className="flex items-center space-x-4">
+            <div className="relative group">
               <img
-                src={user?.avatar_url ? user.avatar_url : '/static/images/me.png'}
-                alt={user?.nickname || 'User Avatar'}
-                className="w-10 h-10 rounded-full cursor-pointer"
+                src={user?.avatar_url || '/static/images/me.png'}
+                alt="用户头像"
+                className="w-12 h-12 rounded-full cursor-pointer border-2 border-blue-500 hover:border-blue-400 transition-all"
                 onClick={handleProfileClick}
-                aria-label="User Profile"
               />
-              {isSidebarOpen && <span className="text-lg font-semibold text-yellow-400 ml-3">{user?.nickname}</span>}
               {showProfileMenu && (
-                <div className="absolute right-0 mt-2 bg-gray-700 rounded-md shadow-lg">
-                  <div className="p-4 cursor-pointer hover:bg-gray-600" onClick={onLogout}>
-                    退出登录
+                <div className="absolute top-14 left-0 bg-gray-700 rounded-lg shadow-lg w-48 z-50 py-2">
+                  {/* 个人信息预览 */}
+                  <div className="px-4 py-2 border-b border-gray-600">
+                    <div className="text-sm font-medium">{user?.nickname || '用户'}</div>
+                    <div className="text-xs text-gray-400">ID: {user?.user_detail_id}</div>
+                  </div>
+                  {/* 操作选项 */}
+                  <div className="py-1">
+                    <button className="w-full px-4 py-2 text-left text-sm hover:bg-gray-600 flex items-center space-x-2">
+                      <span>个人设置</span>
+                    </button>
+                    <button className="w-full px-4 py-2 text-left text-sm hover:bg-gray-600 flex items-center space-x-2">
+                      <span>修改头像</span>
+                    </button>
+                    <button 
+                      className="w-full px-4 py-2 text-left text-sm hover:bg-gray-600 flex items-center space-x-2 text-red-400"
+                      onClick={onLogout}
+                    >
+                      <span>退出登录</span>
+                    </button>
                   </div>
                 </div>
               )}
             </div>
+            {isSidebarOpen && (
+              <div className="flex-1">
+                <div className="text-lg font-medium truncate">{user?.nickname || '用户'}</div>
+                <div className="text-xs text-gray-400">在线</div>
+              </div>
+            )}
           </div>
         </header>
 
-        <div className="flex-grow overflow-y-auto">
-          <ul className="space-y-2">
-            {/* 群聊搜索框和加号按钮 */}
-            <div className="flex justify-between items-center p-4 bg-gray-700">
-              <input
-                type="text"
-                placeholder="搜索群聊..."
-                value={searchQuery}
-                onChange={(e) => handleSearch(e.target.value)}
-                className="bg-gray-600 text-white rounded-md p-2 w-3/4"
-              />
-              <AiOutlinePlus
-                size={24}
-                className="cursor-pointer text-white ml-4"
-                onClick={() => setShowModal(true)} // 点击加号按钮，显示弹出框
-              />
+        {/* 搜索和添加区域 */}
+        <div className="p-4 bg-gray-750 border-b border-gray-700">
+          <div className="flex items-center space-x-2">
+            <input
+              type="text"
+              placeholder="搜索聊天..."
+              value={searchQuery}
+              onChange={(e) => handleSearch(e.target.value)}
+              className="flex-1 bg-gray-700 text-white text-sm rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <button
+              onClick={() => setShowModal(true)}
+              className="p-2 hover:bg-gray-600 rounded-md transition-colors"
+              title="添加"
+            >
+              <AiOutlinePlus className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        {/* 聊天列表区域 - 优化群聊和私聊显示 */}
+        <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600">
+          {/* 群聊列表 */}
+          {groups.length > 0 && (
+            <div className="mb-2">
+              <div 
+                className="flex items-center justify-between px-4 py-3 bg-gray-750 cursor-pointer hover:bg-gray-700"
+                onClick={toggleGroupsCollapse}
+              >
+                <h2 className="text-sm font-medium flex items-center space-x-2">
+                  <span>群聊列表</span>
+                  <span className="text-xs text-gray-400">({groups.length})</span>
+                </h2>
+                <span className="text-xs transform transition-transform duration-200">
+                  {isGroupsCollapsed ? '▶' : '▼'}
+                </span>
+              </div>
+              {!isGroupsCollapsed && (
+                <div className="py-1">
+                  {groups.map((group) => (
+                    <div
+                      key={group.group_id}
+                      onClick={() => handleChatChange(group.group_id, group.name, true)}
+                      className="flex items-center px-4 py-2 hover:bg-gray-700 cursor-pointer group relative"
+                    >
+                      <img 
+                        src={group.avatar_url || '/static/images/group.png'}
+                        alt={group.name}
+                        className="w-10 h-10 rounded-full border-2 border-blue-500"
+                      />
+                      {isSidebarOpen && (
+                        <div className="ml-3 flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium truncate">{group.name}</span>
+                            <span className="text-xs text-gray-400">{group.members?.length || 0}人</span>
+                          </div>
+                          <p className="text-xs text-gray-400 truncate">
+                            {group.description || '暂无群介绍'}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
+          )}
 
-            {/* 群聊部分 */}
-            {groups.length === 0 && friends.length === 0 && (
-              <div className="text-center text-gray-400 mt-8">
-                <p>还没有群聊</p>
-                <p>还没有朋友</p>
-              </div>
-            )}
-
-            {groups.length > 0 && (
-              <li className="p-4 bg-gray-700 cursor-pointer flex justify-between items-center" onClick={toggleGroupsCollapse}>
-                <h2 className={`${!isSidebarOpen ? 'text-sm' : 'text-lg'} font-semibold`}>
-                  群聊列表 ({groups.length})
+          {/* 好友列表 */}
+          {friends.length > 0 && (
+            <div className="mb-2">
+              <div 
+                className="flex items-center justify-between px-4 py-3 bg-gray-750 cursor-pointer hover:bg-gray-700"
+                onClick={toggleFriendsCollapse}
+              >
+                <h2 className="text-sm font-medium flex items-center space-x-2">
+                  <span>好友列表</span>
+                  <span className="text-xs text-gray-400">({friends.length})</span>
                 </h2>
-                <span>{isGroupsCollapsed ? '▶' : '▼'}</span>
-              </li>
-            )}
-
-            {!isGroupsCollapsed && groups.length > 0 && (
-              <div className={`transition-all duration-300 ${isSidebarOpen ? 'max-h-96' : 'max-h-0'} overflow-hidden`}>
-                {groups.map((group) => (
-                  <li key={group.group_id} onClick={() => handleChatChange(group.group_id, group.name, true)} className="p-4 border-b border-gray-700 hover:bg-gray-700 cursor-pointer flex items-center">
-                    {isSidebarOpen && <img src={group.avatar_url ? group.avatar_url : '/static/images/group.png'} alt={group.name} className="w-10 h-10 rounded-full mr-4" />}
-                    {isSidebarOpen ? group.name : ''}
-                  </li>
-                ))}
+                <span className="text-xs transform transition-transform duration-200">
+                  {isFriendsCollapsed ? '▶' : '▼'}
+                </span>
               </div>
-            )}
+              {!isFriendsCollapsed && (
+                <div className="py-1">
+                  {friends.map((friend) => (
+                    <div
+                      key={friend.user_detail_id}
+                      onClick={() => handleChatChange(friend.user_detail_id, friend.nickname, false)}
+                      className="flex items-center px-4 py-2 hover:bg-gray-700 cursor-pointer group relative"
+                    >
+                      <img 
+                        src={friend.avatar_url || '/static/images/user.png'}
+                        alt={friend.nickname}
+                        className="w-10 h-10 rounded-full border-2 border-green-500"
+                      />
+                      {isSidebarOpen && (
+                        <div className="ml-3 flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium truncate">{friend.nickname}</span>
+                            <span className="text-xs text-gray-400">
+                              {friend.online ? '在线' : '离线'}
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-400 truncate">
+                            {friend.signature || '这个人很懒，什么都没写~'}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
-            {friends.length > 0 && (
-              <li className="p-4 bg-gray-700 cursor-pointer flex justify-between items-center" onClick={toggleFriendsCollapse}>
-                <h2 className={`${!isSidebarOpen ? 'text-sm' : 'text-lg'} font-semibold`}>
-                  私聊列表 ({friends.length})
-                </h2>
-                <span>{isFriendsCollapsed ? '▶' : '▼'}</span>
-              </li>
-            )}
-
-            {!isFriendsCollapsed && friends.length > 0 && (
-              <div className={`transition-all duration-300 ${isSidebarOpen ? 'max-h-96' : 'max-h-0'} overflow-hidden`}>
-                {friends.map((friend) => (
-                  <li key={friend.user_detail_id} onClick={() => handleChatChange(friend.user_detail_id, friend.nickname, false)} className="p-4 border-b border-gray-700 hover:bg-gray-700 cursor-pointer flex items-center">
-                    {isSidebarOpen && <img src={friend.avatar_url ? friend.avatar_url : '/static/images/user.png'} alt={friend.nickname} className="w-10 h-10 rounded-full mr-4" />}
-                    {isSidebarOpen ? friend.nickname : ''}
-                  </li>
-                ))}
-              </div>
-            )}
-          </ul>
+          {/* 空状态显示 */}
+          {groups.length === 0 && friends.length === 0 && (
+            <div className="flex flex-col items-center justify-center h-full text-gray-400">
+              <p className="text-sm">暂无聊天</p>
+              <button 
+                onClick={() => setShowModal(true)}
+                className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+              >
+                添加好友/群聊
+              </button>
+            </div>
+          )}
         </div>
       </aside>
 
       {/* 折叠按钮 */}
-      <button className="absolute top-1/2 left-full transform -translate-x-1/2 translate-y-[-50%] bg-gray-700 text-white p-3 rounded-full focus:outline-none shadow-lg hover:bg-gray-600 transition-all duration-300" onClick={toggleSidebar}>
-        {isSidebarOpen ? <AiOutlineArrowLeft size={24} /> : <AiOutlineArrowRight size={24} />}
+      <button 
+        className="absolute top-1/2 -right-4 transform -translate-y-1/2 bg-gray-700 text-white p-2 rounded-full hover:bg-gray-600 transition-colors focus:outline-none shadow-lg"
+        onClick={toggleSidebar}
+      >
+        {isSidebarOpen ? <AiOutlineArrowLeft size={20} /> : <AiOutlineArrowRight size={20} />}
       </button>
 
       {/* 弹出框：添加好友或加入群聊 */}
@@ -165,7 +252,7 @@ const ChatSidebar = ({ groups, friends, handleChatChange, user, onLogout, isSide
               className="block w-full text-center py-2 bg-green-600 text-white rounded-lg mb-4"
               onClick={() => {
                 setModalType('joinGroup');
-                setShowModal(false); // 关闭弹出框
+                setShowModal(false); // ���闭弹出框
               }}
             >
               加入群聊

@@ -2,90 +2,88 @@ package handler
 
 import (
 	"backend/shared"
-	"fmt"
 	"net/http"
 
-	"github.com/DanPlayer/randomname"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 )
 
-// RegisterUser handles user registration with transaction and error handling
-func RegisterUserHandler(c *gin.Context) {
-	var request struct {
-		Username string `json:"username" binding:"required"`
-		Password string `json:"password" binding:"required"`
-		Email    string `json:"email" binding:"required"`
-	}
+// // RegisterUser handles user registration with transaction and error handling
+// func RegisterUserHandler(c *gin.Context) {
+// 	var request struct {
+// 		Username string `json:"username" binding:"required"`
+// 		Password string `json:"password" binding:"required"`
+// 		Email    string `json:"email" binding:"required"`
+// 	}
 
-	// 解析 JSON 请求
-	if err := c.ShouldBindJSON(&request); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid input"})
-		return
-	}
+// 	// 解析 JSON 请求
+// 	if err := c.ShouldBindJSON(&request); err != nil {
+// 		c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid input"})
+// 		return
+// 	}
 
-	// 开始事务
-	tx := shared.MysqlDb.Begin()
+// 	// 开始事务
+// 	tx := shared.MysqlDb.Begin()
 
-	// 创建用户对象
-	user := User{
-		Username: request.Username,
-		Password: request.Password,
-		Email:    request.Email,
-	}
+// 	// 创建用户对象
+// 	user := User{
+// 		Username: request.Username,
+// 		Password: request.Password,
+// 		Email:    request.Email,
+// 	}
 
-	// 哈希密码
-	hashedPassword, err := hashPassword(user.Password)
-	if err != nil {
-		tx.Rollback()
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to hash password"})
-		return
-	}
-	user.Password = hashedPassword
+// 	// 哈希密码
+// 	hashedPassword, err := hashPassword(user.Password)
+// 	if err != nil {
+// 		tx.Rollback()
+// 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to hash password"})
+// 		return
+// 	}
+// 	user.Password = hashedPassword
 
-	// 保存用户到数据库
-	if err := tx.Create(&user).Error; err != nil {
-		tx.Rollback()
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to create user"})
-		return
-	}
+// 	// 保存用户到数据库
+// 	if err := tx.Create(&user).Error; err != nil {
+// 		tx.Rollback()
+// 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to create user"})
+// 		return
+// 	}
 
-	// 创建用户详情
-	userDetail := UserDetail{
-		UserID:   user.ID, // 使用 user.ID 作为关联
-		Nickname: randomname.GenerateName(),
-	}
+// 	// 创建用户详情
+// 	userDetail := UserDetail{
+// 		UserID:   user.ID, // 使用 user.ID 作为关联
+// 		Nickname: randomname.GenerateName(),
+// 	}
 
-	// 保存用户详情到数据库
-	if err := tx.Create(&userDetail).Error; err != nil {
-		tx.Rollback()
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to create user details"})
-		return
-	}
+// 	// 保存用户详情到数据库
+// 	if err := tx.Create(&userDetail).Error; err != nil {
+// 		tx.Rollback()
+// 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to create user details"})
+// 		return
+// 	}
 
-	// 提交事务
-	if err := tx.Commit().Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to commit transaction"})
-		return
-	}
-	var response struct {
-		Message string `json:"message"`
-		WsToken string `json:"ws_token"`
-	}
+// 	// 提交事务
+// 	if err := tx.Commit().Error; err != nil {
+// 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to commit transaction"})
+// 		return
+// 	}
+// 	var response struct {
+// 		Message string `json:"message"`
+// 		WsToken string `json:"ws_token"`
+// 	}
 
-	// 生成 JWT
-	token, err := shared.GenerateToken(fmt.Sprint(userDetail.ID), userDetail.Nickname)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to generate token"})
-		return
-	}
-	response.Message = "User created successfully"
-	response.WsToken = token
-	// 返回成功响应
-	c.JSON(http.StatusOK, response)
+// 	// 生成 JWT
+// 	token, err := shared.GenerateToken(fmt.Sprint(userDetail.ID), userDetail.Nickname)
+// 	if err != nil {
+// 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to generate token"})
+// 		return
+// 	}
+// 	response.Message = "User created successfully"
+// 	response.WsToken = token
+// 	// 返回成功响应
+// 	c.JSON(http.StatusOK, response)
 
-}
+// }
 
 // LoginHandler handles user login with session management
 func LoginHandler(c *gin.Context) {

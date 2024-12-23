@@ -1,0 +1,35 @@
+//创建节点一
+curl --request PUT \
+     --data '{
+       "ID": "ws_node_1",
+       "Name": "ws_server",
+       "Address": "127.0.0.1",
+       "Port": 8001,
+       "Check": {
+         "HTTP": "http://127.0.0.1:8002/health",
+         "Interval": "10s"
+       }
+     }' \
+     http://localhost:8500/v1/agent/service/register
+//删除
+curl --request PUT \
+     http://localhost:8500/v1/agent/service/deregister/ws_node_1
+
+//创建节点二
+curl --request PUT \
+     --data '{
+       "ID": "ws_node_2",
+       "Name": "ws_server",
+       "Address": "127.0.0.1",
+       "Port": 8003,
+       "Check": {
+         "HTTP": "http://127.0.0.1:8004/health",
+         "Interval": "10s"
+       }
+     }' \
+     http://localhost:8500/v1/agent/service/register
+//删除
+curl --request PUT \
+     http://localhost:8500/v1/agent/service/deregister/ws_node_2
+
+

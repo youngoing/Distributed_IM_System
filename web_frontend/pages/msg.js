@@ -31,8 +31,8 @@ export default function Msg({ children }) {
     setShowDropdown(!showDropdown);
   };
 
-  const handleEmojiSelect = (emoji) => {
-    setMessageInput((prev) => prev + emoji.native);
+  const handleEmojiSelect = (emojiData) => {
+    setMessageInput(prev => prev + emojiData.emoji);
     setShowEmojiPicker(false);
   };
 
@@ -42,7 +42,10 @@ export default function Msg({ children }) {
     setChatName(name);
     setIsRoom(isRoom);
     setLoading(true);
-    // console.log("isRoom:", isRoom);
+    console.log("id:", id);
+    console.log("isRoom:", isRoom);
+    console.log("currentChatId:", currentChatId);
+    console.log("name:", name);
     try {
       let loadedMessages = [];
       const storageKey = isRoom ? 'group_msgs' : 'private_msgs';
@@ -61,34 +64,55 @@ export default function Msg({ children }) {
 
   const handleSendMessage = async () => {
     if (!messageInput.trim()) return;
-    setChatMessages((prevMessages) => {
-      const newMessage = {
-        sender_id: user.user_detail_id,
-        msg_content: messageInput,
-        timestamp: new Date().toISOString(),
-      };
-      return [...prevMessages, newMessage];
-    });
+
+    // 创建一个与接收消息格式一致的消息对象
+    const newMessage = {
+      sender_id: user.user_detail_id,
+      receiver_id: isRoom ? null : currentChatId,
+      group_id: isRoom ? currentChatId : null,
+      msg_content: messageInput,
+      timestamp: new Date().toISOString(),
+      msg_type: isRoom ? 'group' : 'private'
+    };
+    // 更新聊天消息列表
+    setChatMessages(prevMessages => [...prevMessages, newMessage]);
     setMessageInput('');
     if (isRoom) {
       const groupMessage = newTestGroupMessage(user.user_detail_id, currentChatId, groupMemberIds, messageInput);
       WebSocketService.sendMessage(groupMessage);
-      console.log('groupMessage:', groupMessage);
     } else {
       const privateMessage = newTestPrivateMessage(user.user_detail_id, currentChatId, messageInput);
       WebSocketService.sendMessage(privateMessage);
-      console.log('privateMessage:', privateMessage);
     }
   };
 
   const handleIncomingMessage = async (message) => {
+    console.log("indoming message:", message);
     setChatMessages((prevMessages) => {
-      if (message.msg_type === 'group' && isRoom && String(currentChatId) === message.group_id) {
-        return [...prevMessages, message];
+      // 检查消息是否已存在
+      const isDuplicate = prevMessages.some(msg =>
+        msg.timestamp === message.timestamp &&
+        msg.sender_id === message.sender_id &&
+        msg.msg_content === message.msg_content
+      );
+
+      if (isDuplicate) return prevMessages;
+
+      // 群聊消息处理
+      if (isRoom) {
+        if (String(currentChatId) === String(message.group_id)) {
+          console.log("群聊消息匹配成功");
+          return [...prevMessages, message];
+        }
+      } 
+      // 私聊消息处理
+      else {
+        if (String(currentChatId) === String(message.sender_id)) {
+          console.log("私聊消息匹配成功");
+          return [...prevMessages, message];
+        }
       }
-      if (message.msg_type === 'private' && !isRoom && String(currentChatId) === message.sender_id) {
-        return [...prevMessages, message];
-      }
+      console.log("消息不匹配当前聊天");
       return prevMessages;
     });
   };
@@ -113,18 +137,21 @@ export default function Msg({ children }) {
       setGroupMemberIds(MemberIds);
     }
   };
-  // console.log("members:", members);
-  // console.log("groupMemberIds:", groupMemberIds);
 
   useEffect(() => {
     if (user && user.user_detail_id) {
+      // 确保只在组件挂载时连接一次
       WebSocketService.connect(user.user_detail_id);
-      WebSocketService.onMessage(handleIncomingMessage);
+
+      const messageHandler = (message) => handleIncomingMessage(message);
+      WebSocketService.onMessage(messageHandler);
+
       return () => {
-        WebSocketService.onMessage(() => { });
+        // 清理时移除特定的处理函数
+        WebSocketService.removeMessageHandler(messageHandler);
       };
     }
-  }, [user, currentChatId, isRoom]);
+  }, [user]);
 
   useEffect(() => {
     if (!localStorage.getItem('group_msgs')) {
@@ -178,12 +205,6 @@ export default function Msg({ children }) {
     }
   }, [groups, currentChatId, friends]);
 
-  // useEffect(() => {
-  //   if (!currentChatId && groups.length > 0) {
-  //     handleChatChange(groups[0].group_id, groups[0].name, true);
-  //   }
-  // }, [groups, currentChatId]);
-
   return (
     <ProtectedComponent>
       {showLogoutConfirm && (
@@ -217,8 +238,8 @@ export default function Msg({ children }) {
           </div>
 
           <main className="flex-grow flex flex-col">
-            <ChatHeader chatName={chatName} loading={loading} isRoom={isRoom} currentChatId={currentChatId}/>
-            <ChatMessages chatMessages={chatMessages} members={members} user={user} currentChatId = {currentChatId} />
+            <ChatHeader chatName={chatName} loading={loading} isRoom={isRoom} currentChatId={currentChatId} />
+            <ChatMessages chatMessages={chatMessages} members={members} user={user} currentChatId={currentChatId} />
             <MessageInput
               messageInput={messageInput}
               setMessageInput={setMessageInput}
@@ -226,7 +247,7 @@ export default function Msg({ children }) {
               showEmojiPicker={showEmojiPicker}
               setShowEmojiPicker={setShowEmojiPicker}
               handleEmojiSelect={handleEmojiSelect}
-              currentChatId = {currentChatId}
+              currentChatId={currentChatId}
             />
           </main>
         </div>

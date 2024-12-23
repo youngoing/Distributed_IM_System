@@ -7,10 +7,16 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// CreateFriendApplication 创建好友申请
-func CreateFriendApplication(c *gin.Context) {
-
+type AddFrienndRequest struct {
+	SenderId   int `json:"sender_id" binding:"required"`
+	ReceiverId int `json:"receiver_id" binding:"required"`
 }
+
+// // CreateFriendApplication 创建好友申请
+// func CreateFriendApplication(c *gin.Context) {
+// 	var
+
+// }
 
 // CreateGroupApplication 创建加入群组申请
 func CreateGroupInApplication(c *gin.Context) {

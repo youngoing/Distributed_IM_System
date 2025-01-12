@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图片上传</title>
+    <style>
+        .preview-container {
+            margin-top: 20px;
+        }
+        .preview-container img {
+            max-width: 100%;
+            max-height: 300px;
+        }
+        .error {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>图片上传</h1>
+    
+    <form id="uploadForm">
+        <input type="file" id="fileInput" name="file" accept="image/*" required>
+        <button type="submit">上传</button>
+    </form>
+
+    <!-- 图片预览区域 -->
+    <div class="preview-container" id="previewContainer">
+        <p>预览图片:</p>
+        <img id="imagePreview" style="display: none;" alt="Image Preview">
+        <p id="errorMessage" class="error" style="display: none;"></p>
+    </div>
+
+    <script>
+        // 获取 DOM 元素
+        const fileInput = document.getElementById('fileInput');
+        const previewContainer = document.getElementById('previewContainer');
+        const imagePreview = document.getElementById('imagePreview');
+        const errorMessage = document.getElementById('errorMessage');
+        const uploadForm = document.getElementById('uploadForm');
+
+        // 显示图片预览
+        fileInput.addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            
+            // 检查文件是否是图片
+            if (file && file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    imagePreview.style.display = 'block';
+                    imagePreview.src = e.target.result;
+                    errorMessage.style.display = 'none';
+                };
+                
+                reader.readAsDataURL(file);
+            } else {
+                imagePreview.style.display = 'none';
+                errorMessage.style.display = 'block';
+                errorMessage.textContent = '请选择有效的图片文件';
+            }
+        });
+
+        // 提交表单
+        uploadForm.addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const formData = new FormData(uploadForm);
+            
+            try {
+                const response = await fetch('/file/upload?id=some_id', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                
+                if (response.ok) {
+                    alert('上传成功！');
+                    console.log('文件 URL:', result.url);
+                } else {
+                    alert('上传失败: ' + result.error);
+                }
+            } catch (error) {
+                console.error('上传错误:', error);
+                alert('上传失败，请重试');
+            }
+        });
+    </script>
+
+</body>
+</html>

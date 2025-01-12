@@ -101,47 +101,92 @@ class WebSocketService {
   }
 
   // 保存接收到的消息到 localStorage
-    saveMessageToLocalStorage(message) {
-        try {
-            // 如果 message 是对象，直接使用；如果是 JSON 字符串，解析为对象
-            const messageObj = typeof message === 'string' ? JSON.parse(message) : message;
+saveMessageToLocalStorage(message) {
+    try {
+        const messageObj = typeof message === 'string' ? JSON.parse(message) : message;
 
-            // 根据消息类型选择存储的键（group_msgs 或 private_msgs）
-            const storageKey = messageObj.msg_type === 'group' ? 'group_msgs' : 'private_msgs';
+        let storageKey;
+        let chatId;
 
-            // 对于群组消息，按 group_id 存储；对于私聊消息，按 sender_id 存储
-            const chatId = messageObj.msg_type === 'group' ? messageObj.group_id : messageObj.sender_id;
-
-            // 获取现有的存储消息
-            const storedMessages = localStorage.getItem(storageKey);
-            const messages = storedMessages ? JSON.parse(storedMessages) : {};
-
-            // 如果没有该 chatId 的消息记录，初始化为空数组
-            if (!messages[chatId]) {
-                messages[chatId] = [];
-            }
-
-            // 将新的消息添加到对应的聊天记录中
-            messages[chatId].push(messageObj);
-
-            // 更新 localStorage 中的消息
-            localStorage.setItem(storageKey, JSON.stringify(messages));
-
-            // console.log('Message saved to localStorage');
-        } catch (error) {
-            console.error('Failed to save message to localStorage:', error);
+        switch (messageObj.msg_type) {
+            case 'group':
+                storageKey = 'group_msgs';
+                chatId = messageObj.group_id;
+                break;
+            case 'private':
+                storageKey = 'private_msgs';
+                chatId = messageObj.sender_id;
+                break;
+            case 'invition':
+                storageKey = 'notice_msgs';
+                chatId = 'invition';
+                break;
+            case 'system':
+                storageKey = 'notice_msgs';
+                chatId = 'system';
+                // 对于通知类消息，直接使用数组存储
+                break; // 不执行后续的对象存储逻辑
+            default:
+                console.warn('Unknown message type:', messageObj.msg_type);
+                return;
         }
+
+        // 以下代码只处理 group、private、invition 和 system 消息
+        const storedMessages = localStorage.getItem(storageKey);
+        const messages = storedMessages ? JSON.parse(storedMessages) : {};
+
+        // 如果没有该 chatId 的消息记录，初始化为空数组
+        if (!messages[chatId]) {
+            messages[chatId] = [];
+        }
+
+        // 将新的消息添加到对应的聊天记录中
+        messages[chatId].push(messageObj);
+
+        // 更新 localStorage 中的消息
+        localStorage.setItem(storageKey, JSON.stringify(messages));
+
+    } catch (error) {
+        console.error('Failed to save message to localStorage:', error);
     }
+}
     saveUserMessageToLocalStorage(message) {
         try {
+            console.log("new websocketmessage",message);
             // 如果 message 是对象，直接使用；如果是 JSON 字符串，解析为对象
             const messageObj = typeof message === 'string' ? JSON.parse(message) : message;
 
-            // 根据消息类型选择存储的键（group_msgs 或 private_msgs）
-            const storageKey = messageObj.msg_type === 'group' ? 'group_msgs' : 'private_msgs';
+            // 根据消息类型选择存储的键
+            let storageKey;
+            switch(messageObj.msg_type) {
+                case 'group':
+                    storageKey = 'group_msgs';
+                    break;
+                case 'private':
+                    storageKey = 'private_msgs';
+                    break;
+                // case 'invition':
+                //     storageKey = 'invition_msgs';
+                //     break;
+                // case 'system':
+                //     storageKey = 'system_msgs';
+                //     break;
+                case 'invition':
+                    storageKey = 'notice_msgs';
+                    break;
+                default:
+                    storageKey = 'notice';
+            }
 
-            // 对于群组消息，按 group_id 存储；对于私聊消息，按 sender_id 存储
-            const chatId = messageObj.msg_type === 'group' ? messageObj.group_id : messageObj.receiver_id[0];
+            // 获取聊天ID
+            let chatId;
+            if (messageObj.msg_type === 'group') {
+                chatId = messageObj.group_id;
+            } else if (messageObj.msg_type === 'private') {
+                chatId = messageObj.receiver_id[0];
+            } else if (messageObj.msg_type === 'invition' || messageObj.msg_type === 'system') {
+                chatId = 'notice'; // 系统消息和邀请消息统一使用 'notice' 作为 chatId
+            }
 
             // 获取现有的存储消息
             const storedMessages = localStorage.getItem(storageKey);
@@ -158,7 +203,6 @@ class WebSocketService {
             // 更新 localStorage 中的消息
             localStorage.setItem(storageKey, JSON.stringify(messages));
 
-            // console.log('Message saved to localStorage');
         } catch (error) {
             console.error('Failed to save message to localStorage:', error);
         }

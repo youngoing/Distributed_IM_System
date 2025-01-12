@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 )
 
@@ -198,4 +199,56 @@ func GetGroupByID(c *gin.Context) {
 
 	// 返回包含群组详情和成员的响应
 	c.JSON(200, groupData)
+}
+
+func DeleteGroup(c *gin.Context) {
+	// 从 URL 参数获取 group_id
+	groupID := c.Param("group_id")
+	session := sessions.Default(c)
+	userDetailID := session.Get("user_detail_id").(int)
+
+	// 判断用户是否是群组的创建者
+	var group ChatGroup
+	if err := shared.MysqlDb.Where("id = ? AND user_detail_id = ?", groupID, userDetailID).First(&group).Error; err != nil {
+		c.JSON(400, gin.H{"error": "Failed to delete group", "details": err.Error()})
+		return
+	}
+	// 删除群组成员
+	if err := shared.MysqlDb.Where("group_id = ?", groupID).Delete(&GroupMember{}).Error; err != nil {
+		c.JSON(500, gin.H{"error": "Failed to delete group members", "details": err.Error()})
+		return
+	}
+
+	// 删除群组
+	if err := shared.MysqlDb.Where("id = ?", groupID).Delete(&ChatGroup{}).Error; err != nil {
+		c.JSON(500, gin.H{"error": "Failed to delete group", "details": err.Error()})
+		return
+	}
+
+	// 返回成功响应
+	c.JSON(200, gin.H{"message": "Group deleted successfully"})
+
+}
+
+func QuitGroup(c *gin.Context) {
+	// 从 URL 参数获取 group_id
+	groupID := c.Param("group_id")
+	session := sessions.Default(c)
+	userDetailID := session.Get("user_detail_id").(int)
+
+	//判断用户是否是群组的创建者
+	var group ChatGroup
+	if err := shared.MysqlDb.Where("id = ? AND user_detail_id = ?", groupID, userDetailID).First(&group).Error; err != nil {
+		c.JSON(400, gin.H{"error": "Failed to quit group", "details": err.Error()})
+		return
+	}
+
+	// 删除群组成员
+	if err := shared.MysqlDb.Where("group_id = ? AND user_detail_id = ?", groupID, userDetailID).Delete(&GroupMember{}).Error; err != nil {
+		c.JSON(500, gin.H{"error": "Failed to quit group", "details": err.Error()})
+		return
+	}
+
+	// 返回成功响应
+	c.JSON(200, gin.H{"message": "Quit group successfully"})
 }

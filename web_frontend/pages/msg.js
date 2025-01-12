@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { newTestPrivateMessage, newTestGroupMessage } from '../utils/msgModel';
 import { friend_list, group_list } from '../api_list';
@@ -17,6 +17,8 @@ export default function Msg({ children }) {
   const [isRoom, setIsRoom] = useState(false);
   const [loading, setLoading] = useState(false);
   const [chatMessages, setChatMessages] = useState([]);
+  // 通知消息
+  const [noticeMessages, setNoticeMessages] = useState([]);
   const [members, setMembers] = useState({});
   const [groupMemberIds, setGroupMemberIds] = useState([]);
   const [friends, setFriends] = useState([]);
@@ -42,10 +44,6 @@ export default function Msg({ children }) {
     setChatName(name);
     setIsRoom(isRoom);
     setLoading(true);
-    console.log("id:", id);
-    console.log("isRoom:", isRoom);
-    console.log("currentChatId:", currentChatId);
-    console.log("name:", name);
     try {
       let loadedMessages = [];
       const storageKey = isRoom ? 'group_msgs' : 'private_msgs';
@@ -64,6 +62,7 @@ export default function Msg({ children }) {
 
   const handleSendMessage = async () => {
     if (!messageInput.trim()) return;
+    console.log(currentChatId)
 
     // 创建一个与接收消息格式一致的消息对象
     const newMessage = {
@@ -78,49 +77,56 @@ export default function Msg({ children }) {
     setChatMessages(prevMessages => [...prevMessages, newMessage]);
     setMessageInput('');
     if (isRoom) {
-      const groupMessage = newTestGroupMessage(user.user_detail_id, currentChatId, groupMemberIds, messageInput);
+      console.log("groupMemberIds",groupMemberIds)
+      const groupMessage = newTestGroupMessage(user.user_detail_id, String(currentChatId), groupMemberIds, messageInput);
       WebSocketService.sendMessage(groupMessage);
     } else {
-      const privateMessage = newTestPrivateMessage(user.user_detail_id, currentChatId, messageInput);
+      const privateMessage = newTestPrivateMessage(user.user_detail_id, String(currentChatId), messageInput);
       WebSocketService.sendMessage(privateMessage);
     }
   };
 
-  const handleIncomingMessage = async (message) => {
-    console.log("indoming message:", message);
+  const handleIncomingMessage = useCallback(async (message) => {
     setChatMessages((prevMessages) => {
-      // 检查消息是否已存在
-      const isDuplicate = prevMessages.some(msg =>
-        msg.timestamp === message.timestamp &&
-        msg.sender_id === message.sender_id &&
-        msg.msg_content === message.msg_content
-      );
+        // 检查消息是否已存在
+        const isDuplicate = prevMessages.some(msg =>
+            msg.timestamp === message.timestamp &&
+            msg.sender_id === message.sender_id &&
+            msg.msg_content === message.msg_content
+        );
 
-      if (isDuplicate) return prevMessages;
+        if (isDuplicate) {
+            console.log("消息重复，不更新");
+            return prevMessages;
+        }
 
-      // 群聊消息处理
-      if (isRoom) {
-        if (String(currentChatId) === String(message.group_id)) {
-          console.log("群聊消息匹配成功");
-          return [...prevMessages, message];
+        // 群聊消息处理
+        if (isRoom && message.group_id) {
+            if (String(currentChatId) === String(message.group_id)) {
+                console.log("群聊消息匹配成功，更新消息列表");
+                return [...prevMessages, message];
+            }
+        } 
+        // 私聊消息处理
+        else if (!isRoom && !message.group_id) {
+            if (String(currentChatId) === String(message.sender_id)) {
+                console.log("私聊消息匹配成功，更新消息列表");
+                return [...prevMessages, message];
+            }
         }
-      } 
-      // 私聊消息处理
-      else {
-        if (String(currentChatId) === String(message.sender_id)) {
-          console.log("私聊消息匹配成功");
-          return [...prevMessages, message];
-        }
-      }
-      console.log("消息不匹配当前聊天");
-      return prevMessages;
+        console.log("消息不匹配当前聊天");
+        return prevMessages;
     });
-  };
+  }, [currentChatId, isRoom]);
 
   const addMembers = (data) => {
     const newMembers = { ...members };
     data.forEach(member => {
       const id = member.user_detail_id;
+      // 跳过当前用户
+      if (id === user.user_detail_id) {
+        return;
+      }
       if (!newMembers[id]) {
         newMembers[id] = {
           nickname: member.nickname,
@@ -132,26 +138,39 @@ export default function Msg({ children }) {
       ...prevMembers,
       ...newMembers
     }));
+
     if (isRoom) {
-      const MemberIds = data.map(member => String(member.user_detail_id));
-      setGroupMemberIds(MemberIds);
+      // 使用 useRef 来保存完整的群成员列表
+      const currentGroupMembers = groups.find(g => g.group_id === currentChatId)?.members || [];
+      const memberIds = currentGroupMembers
+        .filter(member => String(member.user_detail_id) !== String(user.user_detail_id))
+        .map(member => String(member.user_detail_id));
+
+      console.log("群成员IDs:", memberIds);
+      setGroupMemberIds(memberIds);
     }
   };
+// 添加useEffect来监听状态变化
+useEffect(() => {
+  console.log("状态已更新:", {
+      currentChatId,
+      isRoom,
+      chatName
+  });
+}, [currentChatId, isRoom, chatName]);
 
   useEffect(() => {
     if (user && user.user_detail_id) {
       // 确保只在组件挂载时连接一次
       WebSocketService.connect(user.user_detail_id);
-
-      const messageHandler = (message) => handleIncomingMessage(message);
-      WebSocketService.onMessage(messageHandler);
+      WebSocketService.onMessage(handleIncomingMessage);
 
       return () => {
         // 清理时移除特定的处理函数
-        WebSocketService.removeMessageHandler(messageHandler);
+        WebSocketService.removeMessageHandler(handleIncomingMessage);
       };
     }
-  }, [user]);
+  }, [user, handleIncomingMessage]);
 
   useEffect(() => {
     if (!localStorage.getItem('group_msgs')) {

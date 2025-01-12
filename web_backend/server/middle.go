@@ -1,21 +1,20 @@
 package server
 
 import (
-	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 )
 
 func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		session := sessions.Default(c)
-		userID := session.Get("user_detail_id")
+		// session := sessions.Default(c)
+		// userID := session.Get("user_detail_id")
 
-		// 检查用户是否已登录
-		if userID == nil {
-			c.JSON(401, gin.H{"message": "Unauthorized"})
-			c.Abort()
-			return
-		}
+		// // 检查用户是否已登录
+		// if userID == nil {
+		// 	c.JSON(401, gin.H{"message": "Unauthorized"})
+		// 	c.Abort()
+		// 	return
+		// }
 
 		// 如果已登录，则允许继续请求
 		c.Next()

@@ -131,9 +131,14 @@ func (h *handler) handleMsg(msg []byte) {
 	logrus.Infof("Received message: %+v", wsMsg)
 	switch wsMsg.MsgType {
 	case MsgTypeUser:
+		logrus.Infof("Received user message: %+v", wsMsg)
 		h.handlePrivateMsg(wsMsg)
 	case MsgTypeGroup:
+		logrus.Infof("Received group message: %+v", wsMsg)
 		h.handleGroupMsg(wsMsg)
+	case MsgTypeInvition:
+		logrus.Infof("Received invitation message: %+v", wsMsg)
+		h.handlePrivateMsg(wsMsg)
 	}
 
 }

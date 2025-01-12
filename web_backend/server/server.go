@@ -24,6 +24,7 @@ func Run() {
 	}
 
 	bind := os.Getenv("BIND_ADDRESS")
+	static_path := os.Getenv("STATIC_PATH")
 
 	// 初始化数据库连接
 	shared.InitDB()
@@ -40,13 +41,14 @@ func Run() {
 	router := gin.Default()
 	// 配置 CORS 中间件
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://127.0.0.1:3000", "http://localhost:3000", "http://172.25.48.1:3000", "http://172.25.59.171:3000"},
+		AllowOrigins:     []string{"http://127.0.0.1:3000", "http://localhost:3000", "http://172.25.59.171:3000"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}))
+
 	//判断是否为int类型,如果不是就设置默认值24
 	userExpirationHoursStr := os.Getenv("USER_EXPIRATION_HOURS")
 
@@ -84,12 +86,12 @@ func Run() {
 	user := router.Group("/user")
 
 	{
-		// user.POST("/register", handler.RegisterUserHandler)
+		user.POST("/register", handler.RegisterUserHandler)
 		user.POST("/login", handler.LoginHandler)
 		user.GET("/logout", AuthMiddleware(), handler.LogoutHandler)
-		user.POST("/:user_detail_id/update", AuthMiddleware(), handler.UpdateUserDetails)
-		user.GET("/:user_detail_id/groups", AuthMiddleware(), handler.GetGroupDetails)
-		user.GET("/:user_detail_id/friends", AuthMiddleware(), handler.GetUserFriends)
+		user.POST("/:user_detail_id/update", handler.UpdateUserDetails)
+		user.GET("/:user_detail_id/groups", handler.GetGroupDetails)
+		user.GET("/:user_detail_id/friends", handler.GetUserFriends)
 		user.GET("/auth", handler.AuthLogged)
 	}
 
@@ -99,17 +101,36 @@ func Run() {
 		group.POST("/create", AuthMiddleware(), handler.CreateGroup)
 		group.POST("/update/:id", AuthMiddleware(), handler.UpdateGroup)
 		group.GET("/:group_id/detail", AuthMiddleware(), handler.GetGroupByID)
+		group.GET("/:group_id/delete", AuthMiddleware(), handler.DeleteGroup)
+		group.GET("/:group_id/exit", AuthMiddleware(), handler.QuitGroup)
 	}
 
 	friend := router.Group("/friend")
 	{
-		friend.POST("create", AuthMiddleware(), handler.AddFriend)
+		// friend.POST("create", AuthMiddleware(), handler.AddFriend)
 		friend.GET("/:friend_id/detail", AuthMiddleware(), handler.FriendDetail)
+		friend.DELETE("/delete", AuthMiddleware(), handler.DeleteFriend)
 
 	}
 	search := router.Group("/search")
 	{
 		search.GET("/", AuthMiddleware(), handler.SearchUserOrGroup)
+	}
+
+	invite := router.Group("invite")
+	{
+		invite.POST("/application", handler.CreateApplication)
+		invite.POST("/auth", AuthMiddleware(), handler.AuthInvitation)
+	}
+
+	static := router.Group("/static")
+	{
+		static.Static("/", static_path)
+
+	}
+	file := router.Group("/file")
+	{
+		file.POST("/upload", handler.HandleImgUpload)
 	}
 
 	sigChan := make(chan os.Signal, 1)

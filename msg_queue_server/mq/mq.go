@@ -64,6 +64,12 @@ func (h *MessageHandler) handleMessage(body []byte) {
 	case MsgTypeGroup:
 		// 群组消息
 		h.handleGroupMsg(wsMsg)
+	case MsgTypeSystem:
+		// 系统消息
+		// h.handleSystemMsg(wsMsg)
+	case MsgTypeInvition:
+		// 邀请消息
+		h.handlePrivateMsg(wsMsg)
 	}
 
 }
@@ -130,6 +136,7 @@ func (h *MessageHandler) handlePrivateMsg(wsMsg WsMsg) {
 			h.forwardMsgToMQ(wsMsg, StoreQueueName)
 			return
 		}
+		logrus.Infof("receiver %s is in current node,forwarding msg", receiverId)
 		NodeQueueName := nodeId + ".msg"
 		h.forwardMsgToMQ(wsMsg, NodeQueueName)
 		return

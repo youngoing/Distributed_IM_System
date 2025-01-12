@@ -48,7 +48,8 @@ type WsHeader struct {
 	GroupId        string   `json:"group_id",omitempty`
 }
 type WsBody struct {
-	MsgContent string `json:"msg_content"`
+	MsgContent string                 `json:"msg_content"`
+	Extra      map[string]interface{} `json:"extra,omitempty"` // 扩展字段，用于自定义场景
 }
 
 // 生成随机 ID

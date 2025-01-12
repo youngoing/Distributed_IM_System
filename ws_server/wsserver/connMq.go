@@ -78,6 +78,8 @@ func (server *WebSocketServerStruct) consumeNodeMessage() error {
 			server.handleUserMessage(message)
 		case shared.MsgTypeGroup:
 			server.handleGroupMessage(message)
+		case shared.MsgTypeInvition:
+			server.handleUserMessage(message)
 		}
 	}
 	return nil

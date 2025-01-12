@@ -105,6 +105,85 @@ func NewWsGroupMessage(receiverId []string, senderId, msgContent, GroupId string
 		WsBody:   body,
 	}
 }
+func NewWsUserInvitionMessage(receiverId []string, senderId, msgContent, senderNickname, senderAvatarUrl string) WsMsg {
+	header := WsHeader{
+		SenderId:       senderId,
+		ReceiverId:     receiverId,
+		MsgContentType: MsgContentTypeText,
+		Timestamp:      time.Now().UnixNano(),
+	}
+	body :=
+		WsBody{
+			MsgContent: msgContent,
+			Extra: map[string]interface{}{
+				"sender_nickname":   senderNickname,
+				"sender_avatar_url": senderAvatarUrl,
+			},
+		}
+
+	return WsMsg{
+		MsgID:    generateRandomID(),
+		MsgType:  MsgTypeInvition,
+		Status:   MsgStatusSent,
+		WsHeader: header,
+		WsBody:   body,
+	}
+
+}
+
+func NewWsGroupApplicationMessage(receiverId []string, senderId, msgContent, GroupId, senderNickname, senderAvatarUrl string) WsMsg {
+	header := WsHeader{
+		SenderId:       senderId,
+		ReceiverId:     receiverId,
+		MsgContentType: MsgContentTypeText,
+		Timestamp:      time.Now().UnixNano(),
+		GroupId:        GroupId,
+	}
+
+	body := WsBody{
+		MsgContent: msgContent,
+		Extra: map[string]interface{}{
+			"sender_nickname":   senderNickname,
+			"sender_avatar_url": senderAvatarUrl,
+		},
+	}
+
+	return WsMsg{
+		MsgID:    generateRandomID(),
+		MsgType:  MsgTypeSystem,
+		Status:   MsgStatusSent,
+		WsHeader: header,
+		WsBody:   body,
+	}
+}
+
+func NewWsGroupInvitionMessage(receiverId []string, senderId, msgContent, GroupId, senderNickname, senderAvatarUrl, group_name, groupAvatarUrl string) WsMsg {
+	header := WsHeader{
+		SenderId:       senderId,
+		ReceiverId:     receiverId,
+		MsgContentType: MsgContentTypeText,
+		Timestamp:      time.Now().UnixNano(),
+		GroupId:        GroupId,
+	}
+
+	body := WsBody{
+		MsgContent: msgContent,
+		Extra: map[string]interface{}{
+			"sender_nickname":   senderNickname,
+			"sender_avatar_url": senderAvatarUrl,
+			"group_name":        group_name,
+			"group_avatar_url":  groupAvatarUrl,
+		},
+	}
+
+	return WsMsg{
+		MsgID:    generateRandomID(),
+		MsgType:  MsgTypeInvition,
+		Status:   MsgStatusSent,
+		WsHeader: header,
+		WsBody:   body,
+	}
+}
 
 // 消息格式美化
 func (msg *WsMsg) PrettyPrint() string {

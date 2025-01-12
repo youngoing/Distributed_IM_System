@@ -67,6 +67,7 @@ func (server *WebSocketServerStruct) handleUserMessage(wsMessage shared.WsMsg) {
 	if len(remainingReceivers) > 0 {
 		// 更新消息中的接收者 ID
 		wsMessage.ReceiverId = remainingReceivers
+		logrus.Info("接收者不在当前节点，消息将转发到 MQ")
 		server.forwardMessageToMQ(wsMessage, "input.msg")
 	}
 }
@@ -97,7 +98,7 @@ func (server *WebSocketServerStruct) handleGroupMessage(wsMessage shared.WsMsg) 
 	// 如果消息中还有接收者 ID，说明接收者不在当前节点，转发消息到
 	if len(wsMessage.ReceiverId) > 0 {
 		// TODO: 转发到 RabbitMQ
-		logrus.Info("接收者不在当前节点，消息将被转发")
+		logrus.Info("接收者不在当前节点，消息将转发到 MQ")
 		server.forwardMessageToMQ(wsMessage, "input.msg")
 	}
 }

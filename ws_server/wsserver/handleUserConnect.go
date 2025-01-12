@@ -32,5 +32,10 @@ func (server *WebSocketServerStruct) removeUserFromChannel(userId string) {
 	defer server.userManager.mu.RUnlock()
 	delete(server.userManager.userList, userId)
 	delete(server.userManager.userChannels, userId)
+	err := removeUserFromRedis(userId)
+	if err != nil {
+		logrus.Error("Failed to remove user from Redis:", err)
+	}
+
 	logrus.Infof("Write channel for user %s has been removed", userId)
 }

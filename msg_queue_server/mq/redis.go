@@ -57,10 +57,15 @@ func getOnlineNodes(redisClient *redis.Client) (map[string]string, error) {
 
 // 根据用户 ID 获取所在的节点
 func getNodeByUser(redisClient *redis.Client, userID string) (string, error) {
-	return redisClient.HGet(ctx, "online_users", userID).Result()
+	//判断用户是否在线，判断是否有key=userID,获取值为节点ID
+	nodeID, err := redisClient.Get(ctx, userID).Result()
+	if err != nil {
+		return "", fmt.Errorf("failed to get node for user %s: %v", userID, err)
+	}
+	return nodeID, nil
 }
 
-// 获取所有在线用户及其对应的节点
-func getAllOnlineUsers(redisClient *redis.Client) (map[string]string, error) {
-	return redisClient.HGetAll(ctx, "online_users").Result()
-}
+// // 获取所有在线用户及其对应的节点
+// func getAllOnlineUsers(redisClient *redis.Client) (map[string]string, error) {
+// 	return redisClient.HGetAll(ctx, "online_users").Result()
+// }

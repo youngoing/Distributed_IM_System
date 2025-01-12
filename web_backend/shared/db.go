@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/jinzhu/gorm"
@@ -12,6 +13,7 @@ import (
 
 var ctx = context.Background()
 var MysqlDb *gorm.DB
+var RedisClient *redis.Client
 
 // 初始化 MySQL 连接池
 func InitDB() {
@@ -46,16 +48,21 @@ func TestDB() {
 	}
 }
 
-var RedisClient *redis.Client
-
 func InitRedis() {
-	// redis连接
 	RedisClient = redis.NewClient(&redis.Options{
 		Addr:     "172.25.59.171:6379",
 		Password: "", // no password set
 		DB:       0,  // use default DB
 		PoolSize: 10, // 连接池大小
 	})
+
+	// 测试连接
+	_, err := RedisClient.Ping(ctx).Result()
+	if err != nil {
+		log.Fatalf("Failed to connect to Redis: %v", err)
+	} else {
+		log.Println("Successfully connected to Redis!")
+	}
 }
 
 func ClearSession() {
@@ -70,4 +77,37 @@ func ClearSession() {
 	if err := iter.Err(); err != nil {
 		fmt.Printf("Failed to iterate keys: %v\n", err)
 	}
+
+	//删除带有invitation_前缀的所有键
+	iter = RedisClient.Scan(ctx, 0, "invitation_*", 0).Iterator()
+	for iter.Next(ctx) {
+		err := RedisClient.Del(ctx, iter.Val()).Err()
+		if err != nil {
+			fmt.Printf("Failed to delete key %s: %v\n", iter.Val(), err)
+		}
+	}
+}
+
+func StoreInvitionToken(msgId, token string) error {
+	key := fmt.Sprintf("invitation_%s", msgId)
+	log.Printf("Storing token for key: %s", key)
+
+	// 设置过期时间三天
+	err := RedisClient.Set(ctx, key, token, 72*3600*time.Second).Err()
+	if err != nil {
+		log.Printf("Error storing token: %v", err)
+		return err
+	}
+	log.Println("Token stored successfully")
+	return nil
+}
+func DeleteInvitionToken(msgId string) error {
+	key := fmt.Sprintf("invitation_%s", msgId)
+	return RedisClient.Del(ctx, key).Err()
+}
+
+// 查找指定msgId的token
+func SearchInvitationToken(msgId string) (string, error) {
+	key := fmt.Sprintf("invitation_%s", msgId)
+	return RedisClient.Get(ctx, key).Result()
 }
